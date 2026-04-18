@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <!--
+    CSP: asset:// is a custom protocol registered in main.js that serves local files.
+    No network requests happen in the renderer — all fetching goes through main.js.
+  -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self' asset:;
+          font-src   'self' asset:;
+          img-src    'self' asset:;
+          media-src  'self' asset:;
+          script-src 'self';
+          style-src  'unsafe-inline';"
+          />
+
+  <style>
+
+    /* ── Fonts ─────────────────────────────────────────────────────────────── */
+
+    @font-face {
+      font-family: 'weathericons';
+      src: url('asset://node_modules/weathericons/font/weathericons-regular-webfont.ttf') format('truetype');
+    }
+
+
+    /* ── Reset ──────────────────────────────────────────────────────────────── */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #f0f0f0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Utility class for the weather icons font */
+    .wi {
+      font-family: 'weathericons';
+    }
+
+
+    /* ── Compact pill ───────────────────────────────────────────────────────── */
+    /* Always visible. Click to toggle the expanded panel. */
+
+    #compact {
+      display: none;
+    }
+
+    #compact:hover {
+      background-color: rgba(25, 25, 50, 0.88);
+    }
+
+    #compact-icon {
+      font-size: 32px;
+      line-height: 1;
+      color: #e0e8ff;
+    }
+
+    #compact-temp {
+      font-size: 26px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+    }
+
+    #compact-summary {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: right;
+      max-width: 140px;
+      line-height: 1.3;
+    }
+
+
+    /* ── Expanded panel ─────────────────────────────────────────────────────── */
+    /* Hidden by default. .visible class is toggled by app.js via IPC. */
+
+    #expanded {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 560px;
+      display: none;
+      flex-direction: column;
+      padding-top: 16px;
+      padding-right: 20px;
+      padding-bottom: 12px;
+      padding-left: 20px;
+      background-color: rgba(14, 20, 26, 0.94);
+      border: 1px solid rgba(130, 190, 200, 0.18);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+      -webkit-app-region: no-drag;
+    }
+
+    #expanded.visible {
+      display: flex;
+    }
+
+
+    /* ── Header: location + last-updated ────────────────────────────────────── */
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    #location {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(235, 225, 200, 0.90);
+    }
+
+    #last-update {
+      font-size: 11px;
+      color: rgba(150, 195, 195, 0.48);
+      cursor: pointer;
+    }
+
+    #last-update:hover {
+      color: #8ec4c4;
+    }
+
+
+    /* ── Current conditions row ─────────────────────────────────────────────── */
+
+    .conditions-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    #exp-icon {
+      font-size: 44px;
+      line-height: 1;
+      color: #d4b86a;
+    }
+
+    #exp-temp {
+      font-size: 38px;
+      font-weight: 200;
+      letter-spacing: -1px;
+      color: #f0e6cc;
+    }
+
+    #exp-conditions {
+      font-size: 20px;
+      font-weight: 300;
+      color: rgba(200, 225, 215, 0.85);
+    }
+
+
+    /* ── Alert / hourly summary text ────────────────────────────────────────── */
+
+    #exp-story {
+      font-size: 13px;
+      color: rgba(180, 210, 200, 0.68);
+      line-height: 1.4;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    #exp-story.warning {
+      color: #ffd966;
+      cursor: pointer;
+    }
+
+    #exp-story.warning:hover {
+      color: #ffe599;
+    }
+
+
+    /* ── Media slot ─────────────────────────────────────────────────────────── */
+    /* Content is injected by app.js based on weather state. Empty = invisible box. */
+
+    #media-slot {
+      width: 100%;
+      height: 260px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: rgba(80, 130, 120, 0.08);
+      border: 1px dashed rgba(130, 190, 195, 0.20);
+    }
+
+    #media-slot img,
+    #media-slot video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 20%;
+      border-radius: 10px;
+    }
+
+
+    /* ── Detail grid ────────────────────────────────────────────────────────── */
+
+    .detail-section {
+      display: flex;
+      margin-bottom: 10px;
+    }
+
+    .detail-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .detail-label {
+      font-size: 10px;
+      color: rgba(140, 190, 185, 0.58);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      color: rgba(232, 225, 205, 0.92);
+    }
+
+    .detail-value .wi {
+      font-size: 13px;
+      color: rgba(130, 185, 178, 0.58);
+    }
+
+
+    /* ── Divider ────────────────────────────────────────────────────────────── */
+
+    .divider {
+      height: 1px;
+      background-color: rgba(130, 190, 200, 0.18);
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+
+    /* ── Forecast toggle buttons ────────────────────────────────────────────── */
+
+    .forecast-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .toggle-btn {
+      padding-top: 4px;
+      padding-right: 16px;
+      padding-bottom: 4px;
+      padding-left: 16px;
+      background-color: transparent;
+      border: 1px solid rgba(130, 185, 178, 0.28);
+      border-radius: 6px;
+      color: rgba(160, 205, 198, 0.55);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .toggle-btn.active {
+      border-color: #8ec4b8;
+      color: #f0e6cc;
+    }
+
+
+    /* ── Forecast strip ─────────────────────────────────────────────────────── */
+
+    .forecast-scroll {
+      display: flex;
+      gap: 12px;
+      height: 108px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      align-items: stretch;
+      padding-bottom: 4px;
+    }
+
+    .forecast-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .forecast-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+
+    .forecast-icon {
+      font-size: 24px;
+      color: #d4b86a;
+    }
+
+    .forecast-time {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(155, 200, 195, 0.60);
+      white-space: nowrap;
+    }
+
+    .forecast-precip {
+      font-size: 11px;
+      color: #7ab4c8;
+    }
+
+    .forecast-temp {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(232, 225, 205, 0.95);
+    }
+
+    .forecast-lohi {
+      font-size: 11px;
+      color: rgba(200, 220, 212, 0.70);
+    }
+
+
+    /* ── Close hint ─────────────────────────────────────────────────────────── */
+
+    .close-hint {
+      margin-top: 6px;
+      text-align: center;
+      font-size: 10px;
+      color: rgba(130, 185, 178, 0.30);
+      cursor: pointer;
+    }
+
+    .close-hint:hover {
+      color: rgba(160, 210, 200, 0.55);
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ── Compact pill ──────────────────────────────────────────────────────── -->
+  <div id="compact">
+    <span id="compact-icon" class="wi">?</span>
+    <span id="compact-temp">--</span>
+    <span id="compact-summary">Loading…</span>
+  </div>
+
+
+  <!-- ── Expanded panel ────────────────────────────────────────────────────── -->
+  <div id="expanded">
+
+    <div class="header-row">
+      <span id="location">--</span>
+      <span id="last-update" title="Click to refresh">--</span>
+    </div>
+
+    <div class="conditions-row">
+      <span id="exp-icon" class="wi">?</span>
+      <span id="exp-temp">--</span>
+      <span id="exp-conditions">--</span>
+    </div>
+
+    <!-- Alert title if one exists, otherwise the hourly forecast summary -->
+    <div id="exp-story">--</div>
+
+    <!-- Gif or video injected here by app.js based on computed weather state -->
+    <div id="media-slot"></div>
+
+    <div class="detail-section">
+      <div class="detail-col">
+        <div class="detail-label">Feels Like</div>
+        <div class="detail-value">
+          <span class="wi">&#xf055;</span>
+          <span id="d-feels">--</span>
+        </div>
+      </div>
+      <div class="detail-col">
+        <div class="detail-label">Humidity</div>
+        <div class="detail-value">
+          <span class="wi">&#xf07a;</span>
+          <span id="d-humidity">--</span>
+        </div>
+      </div>
+      <div class="detail-col">
+        <div class="detail-label">Winds</div>
+        <div class="detail-value">
+          <span class="wi">&#xf050;</span>
+          <span id="d-wind">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-col">
+        <div class="detail-label">Dew Point</div>
+        <div class="detail-value">
+          <span class="wi">&#xf04e;</span>
+          <span id="d-dew">--</span>
+        </div>
+      </div>
+      <div class="detail-col">
+        <div class="detail-label">Visibility</div>
+        <div class="detail-value">
+          <span class="wi">&#xf047;</span>
+          <span id="d-vis">--</span>
+        </div>
+      </div>
+      <div class="detail-col">
+        <div class="detail-label">AQI</div>
+        <div class="detail-value">
+          <span class="wi">&#xf063;</span>
+          <span id="d-aqi">--</span>
+        </div>
+      </div>
+      <div class="detail-col">
+        <div class="detail-label">UVI</div>
+        <div class="detail-value">
+          <span class="wi">&#xf00d;</span>
+          <span id="d-uvi">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="forecast-toggle">
+      <button class="toggle-btn active" id="btn-hourly">Hourly</button>
+      <button class="toggle-btn"        id="btn-daily">Daily</button>
+    </div>
+
+    <div class="forecast-scroll" id="forecast-list"></div>
+
+    <div class="close-hint">click anywhere or press Esc to close</div>
+
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

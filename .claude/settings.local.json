@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start:*)",
+      "Bash(node -e \"import\\('/Users/christianherrera/Documents/Projects/weatherwidget/node_modules/pixi.js/dist/pixi.mjs'\\).then\\(m => console.log\\('VERSION:', m.VERSION\\)\\).catch\\(e => console.error\\(e\\)\\)\")",
+      "Bash(pkill -f \"electron .\")",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(pkill -f \"electron\")",
+      "Bash(pkill -f \"weatherwidget\")"
+    ]
+  }
+}
