@@ -46,7 +46,8 @@ const WEATHER_MEDIA_MAP = {
   sunset:        { elementTag: 'img', filePath: 'asset://renderer/Sunset.gif'         },
 
   // General conditions (matched against the API's icon name)
-  'clear-day':   { elementTag: 'img', filePath: 'asset://renderer/SunnyDay.gif'       },
+  'clear-day':   { elementTag: 'img', filePath: 'asset://renderer/SunnyDay1.gif'      },
+  uv_warning:    { elementTag: 'img', filePath: 'asset://renderer/UVWarning.gif'      },
   hot:           { elementTag: 'img', filePath: 'asset://renderer/HotDay.gif'         },
   cloudy:        { elementTag: 'img', filePath: 'asset://renderer/Cloudy.gif'         },
   snow:          { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'           },
@@ -82,26 +83,30 @@ function getWeatherState(fullWeatherData) {
     return (hourlyItem.precipIntensity || 0) <= 0.05
   })
 
-  if (isRainComing)   return 'rain_coming'
-  if (isRainStopping) return 'rain_stopping'
-  if (isRainingNow)   return 'rain_active'
+  if (isRainComing)   { return 'rain_coming' }
+  if (isRainStopping) { return 'rain_stopping' }
+  if (isRainingNow)   { return 'rain_active' }
 
   // ── Actual sunrise event (60 min before sunrise) → Wakeup.gif ───────────
   const sunriseTime         = todayData ? todayData.sunriseTime : null
   const secondsUntilSunrise = sunriseTime ? (sunriseTime - currentTimestamp) : -1
-  if (secondsUntilSunrise >= 0 && secondsUntilSunrise <= 3600) return 'morning'
+  if (secondsUntilSunrise >= 0 && secondsUntilSunrise <= 3600) { return 'morning' }
 
   // ── General morning window (5 AM – 9 AM) → Sunrise.gif ───────────────────
-  if (currentHour >= 5 && currentHour < 9) return 'sunrise'
+  if (currentHour >= 5 && currentHour < 9) { return 'sunrise' }
 
   // ── Sunset window (60 minutes before sunset) → Sunset.gif ────────────────
   const sunsetTime          = todayData ? todayData.sunsetTime : null
   const secondsUntilSunset  = sunsetTime ? (sunsetTime - currentTimestamp) : -1
-  if (secondsUntilSunset >= 0 && secondsUntilSunset <= 3600) return 'sunset'
+  if (secondsUntilSunset >= 0 && secondsUntilSunset <= 3600) { return 'sunset' }
+
+  // ── High UV (UVI 8+, "Very High" or above) ───────────────────────────────
+  const uvIndex = currentConditions.uvIndex || 0
+  if (uvIndex >= 8) { return 'uv_warning' }
 
   // ── Hot day (feels like over 95°F) ────────────────────────────────────────
   const apparentTemperature = currentConditions.apparentTemperature || 0
-  if (apparentTemperature >= 95) return 'hot'
+  if (apparentTemperature >= 95) { return 'hot' }
 
   // ── Default: use the API's icon name directly (cloudy, snow, thunderstorm…)
   return currentConditions.icon
@@ -126,17 +131,17 @@ function degreesToCompassDirection(degrees) {
 
 function getAqiLabel(ozoneValue) {
   const roundedOzone = Math.round(ozoneValue || 300)
-  if (roundedOzone > 299) return 'Good'
-  if (roundedOzone > 220) return 'Moderate'
+  if (roundedOzone > 299) { return 'Good' }
+  if (roundedOzone > 220) { return 'Moderate' }
   return 'Unhealthy'
 }
 
 function getUviLabel(uviValue) {
   const uvi = uviValue || 0
-  if (uvi < 3)  return 'Low'
-  if (uvi < 6)  return 'Moderate'
-  if (uvi < 8)  return 'High'
-  if (uvi < 11) return 'Very High'
+  if (uvi < 3)  { return 'Low' }
+  if (uvi < 6)  { return 'Moderate' }
+  if (uvi < 8)  { return 'High' }
+  if (uvi < 11) { return 'Very High' }
   return 'Extreme'
 }
 
@@ -252,7 +257,7 @@ function updateMediaSlot(weatherStateKey) {
 }
 
 function renderForecast(forecastMode) {
-  if (!currentWeatherData) return
+  if (!currentWeatherData) { return }
   forecastListElement.innerHTML = ''
 
   const forecastItems = forecastMode === 'hourly'
