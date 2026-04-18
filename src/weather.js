@@ -43,7 +43,10 @@ export function analyzeRainStates(currentConditions, hourlyDataArray) {
 }
 
 
-export async function fetchWeatherData(mainWindow, tray, userLocation, rainState, windState, morningState, stormState, uvState, appIcon, appName, breezyMph, windyMph) {
+const WEATHER_RETRY_DELAY_MS = 60 * 1000  // retry after 60 seconds if fetch fails
+const WEATHER_MAX_RETRIES    = 3
+
+export async function fetchWeatherData(mainWindow, tray, userLocation, rainState, windState, morningState, stormState, uvState, appIcon, appName, breezyMph, windyMph, retryCount = 0) {
   if (!userLocation.lat) {
     return;
   }
@@ -95,6 +98,15 @@ export async function fetchWeatherData(mainWindow, tray, userLocation, rainState
     }
   } catch (fetchError) {
     console.error('[weather] fetch failed:', fetchError.message)
-    mainWindow.webContents.send('weather-error', 'Fetch failed: ' + fetchError.message)
+
+    if (retryCount < WEATHER_MAX_RETRIES) {
+      console.log('[weather] retrying in 60s… (attempt ' + (retryCount + 1) + ' of ' + WEATHER_MAX_RETRIES + ')')
+      setTimeout(function() {
+        fetchWeatherData(mainWindow, tray, userLocation, rainState, windState, morningState, stormState, uvState, appIcon, appName, breezyMph, windyMph, retryCount + 1)
+      }, WEATHER_RETRY_DELAY_MS)
+    } else {
+      console.error('[weather] all retries exhausted')
+      mainWindow.webContents.send('weather-error', 'Unable to reach weather service. Will retry on next poll.')
+    }
   }
 }
