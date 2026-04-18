@@ -1,15 +1,44 @@
 {
   "name": "kikis-weather-delivery",
   "version": "1.0.0",
+  "description": "A cozy macOS menu bar weather app",
+  "author": "Christian Herrera",
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "dependencies": {
     "dotenv": "latest",
-    "electron": "latest",
     "node-cron": "latest",
     "weathericons": "^2.1.0"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.kikis.weather-delivery",
+    "productName": "Kiki's Weather Delivery",
+    "icon": "renderer/ICON.png",
+    "asarUnpack": [
+      "renderer/**/*"
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*",
+      "node_modules/**/*",
+      ".env"
+    ],
+    "mac": {
+      "category": "public.app-category.weather",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
   }
 }

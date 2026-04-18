@@ -15,13 +15,14 @@ import { config } from 'dotenv'
 import { createTray } from './src/tray.js'
 import { fetchWeatherData } from './src/weather.js'
 
-const currentDirectory = dirname(fileURLToPath(import.meta.url))
+const currentDirectory  = dirname(fileURLToPath(import.meta.url))
+const unpackedDirectory = currentDirectory.replace('app.asar', 'app.asar.unpacked')
 
-config()
+config({ path: join(currentDirectory, '.env') })
 
-const APP_NAME  = "Kiki's Weather Delivery"
-const APP_ICON      = join(currentDirectory, 'renderer', 'Icon.jpg')
-const APP_TRAY_ICON = join(currentDirectory, 'renderer', 'TrayIcon.png')
+const APP_NAME      = "Kiki's Weather Delivery"
+const APP_ICON      = join(unpackedDirectory, 'renderer', 'Icon.jpg')
+const APP_TRAY_ICON = join(unpackedDirectory, 'renderer', 'TrayIcon.png')
 
 const COMPACT_WINDOW_WIDTH   = 320
 const COMPACT_WINDOW_HEIGHT  = 200
@@ -164,7 +165,9 @@ app.whenReady().then(function() {
     const requestUrl  = new URL(request.url)
     const folderName  = requestUrl.hostname
     const filePath    = requestUrl.pathname
-    const fullPath    = join(currentDirectory, folderName, filePath)
+    // Try unpacked path first (renderer assets), fall back to asar path (node_modules fonts etc.)
+    const unpackedFullPath = join(unpackedDirectory, folderName, filePath)
+    const asarFullPath     = join(currentDirectory, folderName, filePath)
 
     const mimeTypes = {
       gif:  'image/gif',
@@ -178,8 +181,13 @@ app.whenReady().then(function() {
 
     const { readFile } = await import('fs/promises')
     try {
-      const fileContents  = await readFile(fullPath)
-      const fileExtension = fullPath.split('.').pop().toLowerCase()
+      let fileContents
+      try {
+        fileContents = await readFile(unpackedFullPath)
+      } catch {
+        fileContents = await readFile(asarFullPath)
+      }
+      const fileExtension = unpackedFullPath.split('.').pop().toLowerCase()
       const contentType   = mimeTypes[fileExtension] || 'application/octet-stream'
       return new Response(fileContents, { headers: { 'Content-Type': contentType } })
     } catch (readError) {
