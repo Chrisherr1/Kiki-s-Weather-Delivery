@@ -2,7 +2,7 @@
 
 A desktop weather application built with Electron that provides real-time weather updates, system tray integration, and dynamic weather animations. Inspired by cozy, lightweight desktop utilities, this app runs quietly in the background and keeps you informed about current weather conditions.
 
-![Kiki's Weather Delivery](renderer/SunnyDay.gif)
+![Kiki's Weather Delivery](renderer/Readmegif.gif)
 
 ---
 
