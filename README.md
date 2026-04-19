@@ -71,8 +71,10 @@ cp .env.example .env
 Then edit `.env` and add your Pirate Weather API key:
 
 ```env
-PIRATE_WEATHER_API_KEY=your_api_key_here
+PIRATE_WEATHER_KEY=your_api_key_here
 ```
+
+> Get a free API key at [pirate-weather.apiable.io](https://pirate-weather.apiable.io/)
 
 ### 3. Run the app
 
