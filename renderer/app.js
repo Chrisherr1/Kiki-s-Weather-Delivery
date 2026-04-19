@@ -54,50 +54,97 @@ const WEATHER_MEDIA_MAP = {
   thunderstorm:  { elementTag: 'img', filePath: 'asset://renderer/Thunderstorms.gif'  },
   wind:          { elementTag: 'img', filePath: 'asset://renderer/Windy.gif'          },
 
-  // Add more as you drop gifs into renderer/:
-  // 'clear-night':         { elementTag: 'img', filePath: 'asset://renderer/ClearNight.gif'        },
-  // 'partly-cloudy-day':   { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyDay.gif'   },
-  // 'partly-cloudy-night': { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyNight.gif' },
-  // fog:                   { elementTag: 'img', filePath: 'asset://renderer/Fog.gif'               },
-  // sleet:                 { elementTag: 'img', filePath: 'asset://renderer/Sleet.gif'             },
+  'clear-night':         { elementTag: 'img', filePath: 'asset://renderer/ClearNight.gif'      },
+  'partly-cloudy-day':   { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyday.gif' },
+  'partly-cloudy-night': { elementTag: 'img', filePath: 'asset://renderer/CloudyNight.gif'     },
+  fog:                   { elementTag: 'img', filePath: 'asset://renderer/fog.gif'             },
+  hail:                  { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'            },
+  sleet:                 { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'            },
 }
 
 // Determines which key to look up in WEATHER_MEDIA_MAP.
 // Priority: rain → sunrise/sunset windows → morning → hot → API icon name
 function getWeatherState(fullWeatherData) {
-  const currentConditions   = fullWeatherData.currently
-  const currentTimestamp    = currentConditions.time
-  const currentHour         = new Date(currentTimestamp * 1000).getHours()
-  const hourlyItems         = (fullWeatherData.hourly && fullWeatherData.hourly.data) ? fullWeatherData.hourly.data : []
-  const nextThreeHours      = hourlyItems.slice(0, 3)
-  const todayData           = fullWeatherData.daily && fullWeatherData.daily.data && fullWeatherData.daily.data[0]
+  const currentConditions = fullWeatherData.currently
+  const currentTimestamp  = currentConditions.time
+  const currentHour       = new Date(currentTimestamp * 1000).getHours()
+
+  // Pull hourly items safely — the API may not always include them
+  let hourlyItems = []
+  if (fullWeatherData.hourly && fullWeatherData.hourly.data) {
+    hourlyItems = fullWeatherData.hourly.data
+  }
+
+  const nextThreeHours = hourlyItems.slice(0, 3)
+
+  // Pull today's daily data safely
+  let todayData = null
+  if (fullWeatherData.daily && fullWeatherData.daily.data && fullWeatherData.daily.data[0]) {
+    todayData = fullWeatherData.daily.data[0]
+  }
 
   // ── Rain checks ───────────────────────────────────────────────────────────
-  const isRainingNow = (currentConditions.precipIntensity || 0) > 0.1
+  const precipIntensity = currentConditions.precipIntensity || 0
+  const isRainingNow    = precipIntensity > 0.1
 
-  const isRainComing = !isRainingNow && nextThreeHours.some(function(hourlyItem) {
-    return (hourlyItem.precipIntensity || 0) > 0.1
-  })
+  // Rain is coming if it's not raining now but any of the next 3 hours show rain
+  let isRainComing = false
+  if (!isRainingNow) {
+    for (let i = 0; i < nextThreeHours.length; i++) {
+      const hourlyPrecip = nextThreeHours[i].precipIntensity || 0
+      if (hourlyPrecip > 0.1) {
+        isRainComing = true
+        break
+      }
+    }
+  }
 
-  const isRainStopping = isRainingNow && nextThreeHours.slice(1).every(function(hourlyItem) {
-    return (hourlyItem.precipIntensity || 0) <= 0.05
-  })
+  // Rain is stopping if it's raining now but the next 2+ hours show it clearing
+  let isRainStopping = false
+  if (isRainingNow) {
+    const upcomingHours = nextThreeHours.slice(1)
+    let allClearing = true
+    for (let i = 0; i < upcomingHours.length; i++) {
+      const hourlyPrecip = upcomingHours[i].precipIntensity || 0
+      if (hourlyPrecip > 0.05) {
+        allClearing = false
+        break
+      }
+    }
+    isRainStopping = allClearing
+  }
 
   if (isRainComing)   { return 'rain_coming' }
   if (isRainStopping) { return 'rain_stopping' }
   if (isRainingNow)   { return 'rain_active' }
 
   // ── Actual sunrise event (60 min before sunrise) → Wakeup.gif ───────────
-  const sunriseTime         = todayData ? todayData.sunriseTime : null
-  const secondsUntilSunrise = sunriseTime ? (sunriseTime - currentTimestamp) : -1
+  let sunriseTime = null
+  if (todayData) {
+    sunriseTime = todayData.sunriseTime
+  }
+
+  let secondsUntilSunrise = -1
+  if (sunriseTime) {
+    secondsUntilSunrise = sunriseTime - currentTimestamp
+  }
+
   if (secondsUntilSunrise >= 0 && secondsUntilSunrise <= 3600) { return 'morning' }
 
   // ── General morning window (5 AM – 9 AM) → Sunrise.gif ───────────────────
   if (currentHour >= 5 && currentHour < 9) { return 'sunrise' }
 
   // ── Sunset window (60 minutes before sunset) → Sunset.gif ────────────────
-  const sunsetTime          = todayData ? todayData.sunsetTime : null
-  const secondsUntilSunset  = sunsetTime ? (sunsetTime - currentTimestamp) : -1
+  let sunsetTime = null
+  if (todayData) {
+    sunsetTime = todayData.sunsetTime
+  }
+
+  let secondsUntilSunset = -1
+  if (sunsetTime) {
+    secondsUntilSunset = sunsetTime - currentTimestamp
+  }
+
   if (secondsUntilSunset >= 0 && secondsUntilSunset <= 3600) { return 'sunset' }
 
   // ── High UV (UVI 8+, "Very High" or above) ───────────────────────────────
@@ -217,13 +264,28 @@ function renderWeatherData(fullWeatherData) {
   expandedConditionsElement.textContent = currentConditions.summary || ''
 
   // Alert banner — shows weather alert title if one exists, otherwise hourly summary
-  const firstAlert = fullWeatherData.alerts && fullWeatherData.alerts[0]
+  let firstAlert = null
+  if (fullWeatherData.alerts && fullWeatherData.alerts[0]) {
+    firstAlert = fullWeatherData.alerts[0]
+  }
+
   if (firstAlert) {
     expandedStoryElement.textContent = '⚠️ ' + firstAlert.title
     expandedStoryElement.classList.add('warning')
-    activeAlertURL = firstAlert.uri || ''
+
+    if (firstAlert.uri) {
+      activeAlertURL = firstAlert.uri
+    } else {
+      activeAlertURL = ''
+    }
   } else {
-    expandedStoryElement.textContent = (fullWeatherData.hourly && fullWeatherData.hourly.summary) || currentConditions.summary || ''
+    let storySummary = ''
+    if (fullWeatherData.hourly && fullWeatherData.hourly.summary) {
+      storySummary = fullWeatherData.hourly.summary
+    } else if (currentConditions.summary) {
+      storySummary = currentConditions.summary
+    }
+    expandedStoryElement.textContent = storySummary
     expandedStoryElement.classList.remove('warning')
     activeAlertURL = ''
   }
@@ -260,9 +322,16 @@ function renderForecast(forecastMode) {
   if (!currentWeatherData) { return }
   forecastListElement.innerHTML = ''
 
-  const forecastItems = forecastMode === 'hourly'
-    ? (currentWeatherData.hourly && currentWeatherData.hourly.data ? currentWeatherData.hourly.data.slice(0, 24) : [])
-    : (currentWeatherData.daily  && currentWeatherData.daily.data  ? currentWeatherData.daily.data               : [])
+  let forecastItems = []
+  if (forecastMode === 'hourly') {
+    if (currentWeatherData.hourly && currentWeatherData.hourly.data) {
+      forecastItems = currentWeatherData.hourly.data.slice(0, 24)
+    }
+  } else {
+    if (currentWeatherData.daily && currentWeatherData.daily.data) {
+      forecastItems = currentWeatherData.daily.data
+    }
+  }
 
   for (let index = 0; index < forecastItems.length; index++) {
     const forecastItem = forecastItems[index]
@@ -274,21 +343,26 @@ function renderForecast(forecastMode) {
     iconElement.className         = 'forecast-icon wi'
     iconElement.textContent       = WEATHER_ICON_CHARACTERS[forecastItem.icon] || '\uf07b'
 
-    const timeElement             = document.createElement('div')
-    timeElement.className         = 'forecast-time'
-    timeElement.textContent       = forecastMode === 'hourly'
-      ? formatTimestamp(forecastItem.time)
-      : formatDayOfWeek(forecastItem.time)
+    const timeElement   = document.createElement('div')
+    timeElement.className = 'forecast-time'
+    if (forecastMode === 'hourly') {
+      timeElement.textContent = formatTimestamp(forecastItem.time)
+    } else {
+      timeElement.textContent = formatDayOfWeek(forecastItem.time)
+    }
 
-    const precipElement           = document.createElement('div')
-    precipElement.className       = 'forecast-precip'
-    precipElement.textContent     = Math.round((forecastItem.precipProbability || 0) * 100) + '%'
+    const precipElement       = document.createElement('div')
+    precipElement.className   = 'forecast-precip'
+    precipElement.textContent = Math.round((forecastItem.precipProbability || 0) * 100) + '%'
 
-    const temperatureElement      = document.createElement('div')
-    temperatureElement.className  = forecastMode === 'hourly' ? 'forecast-temp' : 'forecast-lohi'
-    temperatureElement.textContent = forecastMode === 'hourly'
-      ? Math.round(forecastItem.temperature) + '°'
-      : Math.round(forecastItem.temperatureLow) + '° | ' + Math.round(forecastItem.temperatureHigh) + '°'
+    const temperatureElement = document.createElement('div')
+    if (forecastMode === 'hourly') {
+      temperatureElement.className  = 'forecast-temp'
+      temperatureElement.textContent = Math.round(forecastItem.temperature) + '°'
+    } else {
+      temperatureElement.className  = 'forecast-lohi'
+      temperatureElement.textContent = Math.round(forecastItem.temperatureLow) + '° | ' + Math.round(forecastItem.temperatureHigh) + '°'
+    }
 
     containerElement.appendChild(iconElement)
     containerElement.appendChild(timeElement)
@@ -312,8 +386,16 @@ window.electronAPI.onWeatherError(function(errorMessage) {
 window.electronAPI.onLocationName(function(locationData) {
   const cityName   = locationData.city   || ''
   const regionName = locationData.region || ''
-  const parts      = [cityName, regionName].filter(function(part) { return part.length > 0 })
-  locationElement.textContent = parts.length > 0 ? parts.join(', ') : '--'
+
+  const parts = []
+  if (cityName.length > 0)   { parts.push(cityName) }
+  if (regionName.length > 0) { parts.push(regionName) }
+
+  if (parts.length > 0) {
+    locationElement.textContent = parts.join(', ')
+  } else {
+    locationElement.textContent = '--'
+  }
 })
 
 window.electronAPI.onExpandedChange(function(expandedState) {
@@ -344,7 +426,9 @@ document.addEventListener('keydown', function(keyboardEvent) {
 
 // Alert text — open the alert URL in the default browser
 expandedStoryElement.addEventListener('click', function() {
-  if (activeAlertURL) window.open(activeAlertURL, '_blank')
+  if (activeAlertURL) {
+    window.open(activeAlertURL, '_blank')
+  }
 })
 
 // Last-updated timestamp — manual refresh

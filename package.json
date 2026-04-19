@@ -23,14 +23,14 @@
     "productName": "Kiki's Weather Delivery",
     "icon": "renderer/ICON.png",
     "asarUnpack": [
-      "renderer/**/*"
+      "renderer/**/*",
+      "node_modules/weathericons/**/*"
     ],
     "files": [
       "main.js",
       "preload.js",
       "src/**/*",
       "renderer/**/*",
-      "node_modules/**/*",
       ".env"
     ],
     "mac": {
@@ -38,7 +38,11 @@
       "target": "dmg"
     },
     "win": {
-      "target": "nsis"
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "executableName": "KikisWeatherDelivery"
+    },
+    "nsis": {
+      "shortcutName": "Kikis Weather Delivery"
     }
   }
 }

@@ -16,7 +16,17 @@ import { createTray } from './src/tray.js'
 import { fetchWeatherData } from './src/weather.js'
 
 const currentDirectory  = dirname(fileURLToPath(import.meta.url))
-const unpackedDirectory = currentDirectory.replace('app.asar', 'app.asar.unpacked')
+
+// In production, unpacked assets live in app.asar.unpacked/.
+// process.resourcesPath is the reliable cross-platform way to find that directory.
+// In dev (npm start), there is no asar so we use currentDirectory directly.
+let unpackedDirectory
+
+if (app.isPackaged) {
+  unpackedDirectory = join(process.resourcesPath, 'app.asar.unpacked')
+} else {
+  unpackedDirectory = currentDirectory
+}
 
 config({ path: join(currentDirectory, '.env') })
 
@@ -143,6 +153,7 @@ async function resolveUserLocation(retryCount = 0) {
 // ── IPC handlers ─────────────────────────────────────────────────────────────
 
 ipcMain.on('toggle-expand', function() {
+  mainWindow.webContents.send('expanded-change', false)
   mainWindow.hide()
 })
 
@@ -156,6 +167,9 @@ ipcMain.on('refresh', function() {
 // this is where we set up the tray, main window, and start the initial weather fetch and location resolution.
 app.whenReady().then(function() {
 
+  // Register the app to launch automatically on login
+  app.setLoginItemSettings({ openAtLogin: true })
+
   if (process.platform === 'darwin') {
     app.dock.setIcon(APP_ICON)
     app.dock.hide()
@@ -165,9 +179,7 @@ app.whenReady().then(function() {
     const requestUrl  = new URL(request.url)
     const folderName  = requestUrl.hostname
     const filePath    = requestUrl.pathname
-    // Try unpacked path first (renderer assets), fall back to asar path (node_modules fonts etc.)
-    const unpackedFullPath = join(unpackedDirectory, folderName, filePath)
-    const asarFullPath     = join(currentDirectory, folderName, filePath)
+    const fullPath = join(unpackedDirectory, folderName, filePath)
 
     const mimeTypes = {
       gif:  'image/gif',
@@ -181,13 +193,8 @@ app.whenReady().then(function() {
 
     const { readFile } = await import('fs/promises')
     try {
-      let fileContents
-      try {
-        fileContents = await readFile(unpackedFullPath)
-      } catch {
-        fileContents = await readFile(asarFullPath)
-      }
-      const fileExtension = unpackedFullPath.split('.').pop().toLowerCase()
+      const fileContents  = await readFile(fullPath)
+      const fileExtension = fullPath.split('.').pop().toLowerCase()
       const contentType   = mimeTypes[fileExtension] || 'application/octet-stream'
       return new Response(fileContents, { headers: { 'Content-Type': contentType } })
     } catch (readError) {
