@@ -16,11 +16,13 @@ const WEATHER_ICON_CHARACTERS = {
   'clear-day':           '\uf00d',
   'clear-night':         '\uf02e',
   'rain':                '\uf019',
+  'drizzle':             '\uf01a',
   'snow':                '\uf01b',
   'sleet':               '\uf0b5',
   'wind':                '\uf021',
   'fog':                 '\uf014',
   'cloudy':              '\uf013',
+  'overcast':            '\uf013',
   'partly-cloudy-day':   '\uf002',
   'partly-cloudy-night': '\uf031',
   'hail':                '\uf015',
@@ -39,6 +41,7 @@ const WEATHER_MEDIA_MAP = {
   rain_coming:   { elementTag: 'img', filePath: 'asset://renderer/RainInYourArea.gif' },
   rain_active:   { elementTag: 'img', filePath: 'asset://renderer/Raining.gif'        },
   rain_stopping: { elementTag: 'img', filePath: 'asset://renderer/RainStopping.gif'   },
+  rain:          { elementTag: 'img', filePath: 'asset://renderer/Raining.gif'        },
 
   // Time-of-day states
   morning:       { elementTag: 'img', filePath: 'asset://renderer/Wakeup.gif'         },
@@ -46,18 +49,21 @@ const WEATHER_MEDIA_MAP = {
   sunset:        { elementTag: 'img', filePath: 'asset://renderer/Sunset.gif'         },
 
   // General conditions (matched against the API's icon name)
-  'clear-day':   { elementTag: 'img', filePath: 'asset://renderer/SunnyDay1.gif'      },
+  'clear-day':   { elementTag: 'img', filePath: 'asset://renderer/Sunnyday1.gif'      },
   uv_warning:    { elementTag: 'img', filePath: 'asset://renderer/UVWarning.gif'      },
   hot:           { elementTag: 'img', filePath: 'asset://renderer/HotDay.gif'         },
-  cloudy:        { elementTag: 'img', filePath: 'asset://renderer/Cloudy.gif'         },
+  cloudy:        { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyday.gif' },
+  overcast:      { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyday.gif' },
   snow:          { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'           },
   thunderstorm:  { elementTag: 'img', filePath: 'asset://renderer/Thunderstorms.gif'  },
   wind:          { elementTag: 'img', filePath: 'asset://renderer/Windy.gif'          },
+  tornado:       { elementTag: 'img', filePath: 'asset://renderer/Windy.gif'          },
 
   'clear-night':         { elementTag: 'img', filePath: 'asset://renderer/ClearNight.gif'      },
   'partly-cloudy-day':   { elementTag: 'img', filePath: 'asset://renderer/PartlyCloudyday.gif' },
   'partly-cloudy-night': { elementTag: 'img', filePath: 'asset://renderer/CloudyNight.gif'     },
   fog:                   { elementTag: 'img', filePath: 'asset://renderer/fog.gif'             },
+  drizzle:               { elementTag: 'img', filePath: 'asset://renderer/drizzle.gif'         },
   hail:                  { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'            },
   sleet:                 { elementTag: 'img', filePath: 'asset://renderer/Snow.gif'            },
 }
