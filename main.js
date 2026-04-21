@@ -158,7 +158,11 @@ ipcMain.on('toggle-expand', function() {
 })
 
 ipcMain.on('refresh', function() {
-  doFetchWeather()
+  if (!userLocation.lat) {
+    resolveUserLocation()
+  } else {
+    doFetchWeather()
+  }
 })
 
 
@@ -210,6 +214,9 @@ app.whenReady().then(function() {
   mainWindow.webContents.once('did-finish-load', resolveUserLocation)
 
   setInterval(doFetchWeather, POLL_INTERVAL_MS)
+  setInterval(function() {
+    if (!userLocation.lat) resolveUserLocation()
+  }, 60 * 60 * 1000) // retry location once per hour if it never resolved
 })
 
 app.on('window-all-closed', function() {
