@@ -38,7 +38,7 @@ const COMPACT_WINDOW_WIDTH   = 320
 const COMPACT_WINDOW_HEIGHT  = 200
 const EXPANDED_WINDOW_WIDTH  = 560
 const EXPANDED_WINDOW_HEIGHT = 720
-const POLL_INTERVAL_MS       = 5 * 60 * 1000 // 5 minutes
+const POLL_INTERVAL_MS       = 30 * 60 * 1000 // 30 minutes
 
 const BREEZY_MPH = 15 // thresholds for wind notifications;
 const WINDY_MPH  = 25 // thresholds for wind notifications;
